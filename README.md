@@ -66,3 +66,4 @@ flutter build apk --dart-define-from-file=config/flavors/prod.json
 - `UPLOAD_RETRY_COUNT` (optional)
 # vigi
 # vigila
+# vigila

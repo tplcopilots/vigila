@@ -64,3 +64,4 @@ flutter build apk --dart-define-from-file=config/flavors/prod.json
 - `API_KEY`
 - `REQUEST_SIGNING_SECRET`
 - `UPLOAD_RETRY_COUNT` (optional)
+# vigi

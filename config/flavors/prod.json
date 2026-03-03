@@ -1,0 +1,8 @@
+{
+  "APP_FLAVOR": "prod",
+  "BACKEND_BASE_URL": "https://api.example.com",
+  "ACTIVE_STORAGE_PROVIDER": "firebase",
+  "API_KEY": "replace-with-prod-api-key",
+  "REQUEST_SIGNING_SECRET": "replace-with-prod-signing-secret",
+  "UPLOAD_RETRY_COUNT": "3"
+}

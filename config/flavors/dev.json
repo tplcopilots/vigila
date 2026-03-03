@@ -1,0 +1,8 @@
+{
+  "APP_FLAVOR": "dev",
+  "BACKEND_BASE_URL": "http://localhost:8080",
+  "ACTIVE_STORAGE_PROVIDER": "firebase",
+  "API_KEY": "change-me-api-key",
+  "REQUEST_SIGNING_SECRET": "change-me-signing-secret",
+  "UPLOAD_RETRY_COUNT": "3"
+}

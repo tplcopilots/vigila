@@ -1,0 +1,8 @@
+{
+  "APP_FLAVOR": "staging",
+  "BACKEND_BASE_URL": "https://staging-api.example.com",
+  "ACTIVE_STORAGE_PROVIDER": "firebase",
+  "API_KEY": "replace-with-staging-api-key",
+  "REQUEST_SIGNING_SECRET": "replace-with-staging-signing-secret",
+  "UPLOAD_RETRY_COUNT": "3"
+}

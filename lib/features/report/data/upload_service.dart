@@ -37,9 +37,40 @@ class UploadService {
       'provider': AppConfig.activeStorageProvider.name,
     });
 
-    await _post(
-      endpoint: AppConfig.reportEndpoint,
+    await _post(endpoint: AppConfig.reportEndpoint, body: body);
+  }
+
+  Future<UploadInitResult> initUpload({
+    required int totalChunks,
+    String? fileId,
+  }) async {
+    final body = jsonEncode({
+      'totalChunks': totalChunks,
+      if (fileId != null) 'fileId': fileId,
+      'provider': AppConfig.activeStorageProvider.name,
+    });
+
+    final uri = _resolveUri(AppConfig.uploadInitEndpoint);
+    final headers = _authHeaders(uri: uri, method: 'POST', body: body);
+    final response = await _postWithRetry(
+      uri: uri,
+      headers: headers,
       body: body,
+    );
+    _throwIfHttpError(response);
+
+    final payload = jsonDecode(response.body) as Map<String, dynamic>;
+    final uploadedIndexes = (payload['uploadedIndexes'] as List<dynamic>? ?? [])
+        .map((value) => value as int)
+        .toList();
+    final missingIndexes = (payload['missingIndexes'] as List<dynamic>? ?? [])
+        .map((value) => value as int)
+        .toList();
+
+    return UploadInitResult(
+      fileId: payload['fileId'] as String,
+      uploadedIndexes: uploadedIndexes,
+      missingIndexes: missingIndexes,
     );
   }
 
@@ -55,10 +86,7 @@ class UploadService {
     });
 
     try {
-      await _post(
-        endpoint: AppConfig.chunkUploadEndpoint,
-        body: body,
-      );
+      await _post(endpoint: AppConfig.chunkUploadEndpoint, body: body);
     } on UploadException catch (error) {
       if (error.statusCode == 409) {
         return;
@@ -70,18 +98,19 @@ class UploadService {
   Future<void> finalizeUpload({
     required String fileId,
     required int totalChunks,
+    String? fileName,
+    String? mimeType,
   }) async {
     final body = jsonEncode({
       'fileId': fileId,
       'totalChunks': totalChunks,
       'provider': AppConfig.activeStorageProvider.name,
       'action': 'join_chunks',
+      if (fileName != null) 'fileName': fileName,
+      if (mimeType != null) 'mimeType': mimeType,
     });
 
-    await _post(
-      endpoint: AppConfig.finalizeJoinEndpoint,
-      body: body,
-    );
+    await _post(endpoint: AppConfig.finalizeJoinEndpoint, body: body);
   }
 
   Future<UploadStatus> getUploadStatus({
@@ -111,10 +140,7 @@ class UploadService {
     );
   }
 
-  Future<void> _post({
-    required String endpoint,
-    required String body,
-  }) async {
+  Future<void> _post({required String endpoint, required String body}) async {
     final uri = _resolveUri(endpoint);
     final headers = _authHeaders(uri: uri, method: 'POST', body: body);
 
@@ -280,6 +306,18 @@ class UploadStatus {
     required this.missingIndexes,
   });
 
+  final List<int> uploadedIndexes;
+  final List<int> missingIndexes;
+}
+
+class UploadInitResult {
+  const UploadInitResult({
+    required this.fileId,
+    required this.uploadedIndexes,
+    required this.missingIndexes,
+  });
+
+  final String fileId;
   final List<int> uploadedIndexes;
   final List<int> missingIndexes;
 }

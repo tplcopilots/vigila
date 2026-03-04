@@ -1,31 +1,36 @@
-enum StorageProvider {
-  firebase,
-  oneDrive,
-  cloudServer,
-}
+enum StorageProvider { firebase, oneDrive, cloudServer }
 
-enum AppFlavor {
-  dev,
-  staging,
-  prod,
-}
+enum AppFlavor { dev, staging, prod }
 
 class AppConfig {
   const AppConfig._();
 
-  static const String appFlavorName =
-      String.fromEnvironment('APP_FLAVOR', defaultValue: 'dev');
+  static const String appFlavorName = String.fromEnvironment(
+    'APP_FLAVOR',
+    defaultValue: 'dev',
+  );
 
-  static const String activeStorageProviderName =
-      String.fromEnvironment('ACTIVE_STORAGE_PROVIDER', defaultValue: 'firebase');
+  static const String activeStorageProviderName = String.fromEnvironment(
+    'ACTIVE_STORAGE_PROVIDER',
+    defaultValue: 'firebase',
+  );
 
-  static const String backendBaseUrlOverride =
-      String.fromEnvironment('BACKEND_BASE_URL', defaultValue: '');
-  static const String apiKey = String.fromEnvironment('API_KEY', defaultValue: '');
-  static const String requestSigningSecret =
-      String.fromEnvironment('REQUEST_SIGNING_SECRET', defaultValue: '');
-  static const int uploadRetryCount =
-      int.fromEnvironment('UPLOAD_RETRY_COUNT', defaultValue: 3);
+  static const String backendBaseUrlOverride = String.fromEnvironment(
+    'BACKEND_BASE_URL',
+    defaultValue: '',
+  );
+  static const String apiKey = String.fromEnvironment(
+    'API_KEY',
+    defaultValue: '',
+  );
+  static const String requestSigningSecret = String.fromEnvironment(
+    'REQUEST_SIGNING_SECRET',
+    defaultValue: '',
+  );
+  static const int uploadRetryCount = int.fromEnvironment(
+    'UPLOAD_RETRY_COUNT',
+    defaultValue: 3,
+  );
 
   static AppFlavor get appFlavor {
     switch (appFlavorName) {
@@ -102,7 +107,9 @@ class AppConfig {
   }
 
   static String get reportEndpoint => '$backendBaseUrl/api/report';
+  static String get uploadInitEndpoint => '$backendBaseUrl/api/upload/init';
   static String get chunkUploadEndpoint => '$backendBaseUrl/api/upload/chunk';
-  static String get finalizeJoinEndpoint => '$backendBaseUrl/api/upload/finalize';
+  static String get finalizeJoinEndpoint =>
+      '$backendBaseUrl/api/upload/finalize';
   static String get uploadStatusEndpoint => '$backendBaseUrl/api/upload/status';
 }

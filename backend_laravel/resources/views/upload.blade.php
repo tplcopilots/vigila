@@ -31,17 +31,217 @@
         .bar-fill { background: #292662; height: 100%; }
         .viewer-wrap { display: grid; grid-template-columns: 250px 1fr; gap: 12px; min-height: 380px; }
         .file-list { border: 1px solid #e6e8f5; border-radius: 10px; overflow: auto; max-height: 420px; }
-        .file-item { display: block; width: 100%; text-align: left; padding: 10px; border: none; background: #fff; border-bottom: 1px solid #f0f2fa; cursor: pointer; }
+        .file-item-row { position: relative; border-bottom: 1px solid #f0f2fa; }
+        .file-item { display: block; width: 100%; text-align: left; padding: 10px; border: none; background: #fff; cursor: pointer; }
         .file-item:hover, .file-item.active { background: #eef0fa; }
+        .file-view-action {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: #292662;
+            color: #fff;
+            border: 1px solid #292662;
+            border-radius: 20px;
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .file-item-row:hover .file-view-action { display: inline-flex; }
         .file-name { color: #292662; font-weight: 600; font-size: 13px; display: block; }
         .file-meta { color: #5d647f; font-size: 11px; }
         .preview { border: 1px solid #e6e8f5; border-radius: 10px; padding: 12px; background: #fafbff; min-height: 380px; }
         .preview img, .preview video, .preview audio, .preview iframe { width: 100%; max-height: 340px; border-radius: 8px; }
         .preview-empty { color: #5d647f; font-size: 14px; display: flex; align-items: center; justify-content: center; min-height: 320px; text-align: center; }
+        .doc-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 18, 40, 0.72);
+            backdrop-filter: blur(3px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 18px;
+        }
+        .doc-modal.open { display: flex; }
+        .doc-modal-card {
+            width: min(96vw, 1400px);
+            height: min(92vh, 900px);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e6e8f5;
+            box-shadow: 0 14px 50px rgba(15, 18, 40, 0.22);
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
+        }
+        .doc-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e6e8f5;
+            background: #f8f9ff;
+        }
+        .doc-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .doc-modal-title { color: #292662; font-weight: 700; font-size: 14px; }
+        .img-zoom-controls { display: none; align-items: center; gap: 6px; }
+        .img-zoom-controls.active { display: inline-flex; }
+        .img-zoom-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid #d8dcf0;
+            background: #fff;
+            color: #292662;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .img-zoom-reset {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #d8dcf0;
+            background: #fff;
+            color: #292662;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .img-zoom-label { font-size: 12px; color: #5d647f; min-width: 44px; text-align: center; }
+        .doc-modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid #d8dcf0;
+            background: #fff;
+            color: #292662;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .doc-modal-body {
+            padding: 10px;
+            background: #fff;
+            min-height: 0;
+            height: 100%;
+            display: flex;
+        }
+        .doc-modal-content {
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            background: #f6f7fd;
+            border-radius: 8px;
+        }
+        .doc-modal-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .doc-modal-content video {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .img-zoom-stage {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f6f7fd;
+            border-radius: 8px;
+        }
+        .doc-modal-content img.zoomable {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+            transform-origin: center center;
+            transition: transform 0.12s ease-out;
+        }
+        .doc-modal-content audio {
+            width: min(100%, 900px);
+            height: auto;
+            background: #fff;
+            border-radius: 8px;
+        }
         .chart-grid { display:grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
         .chart-card { border: 1px solid #e6e8f5; border-radius: 10px; background: #fafbff; padding: 10px; }
         .chart-title { font-size: 12px; color: #5d647f; margin-bottom: 6px; }
         .chart-card canvas { width: 100% !important; height: 220px !important; }
+        .tab-wrap { margin-top: 16px; }
+        .tab-head { display: flex; gap: 8px; margin-bottom: 10px; }
+        .tab-btn { background: #eef0fa; color: #292662; border: 1px solid #d7dcf5; }
+        .tab-btn.active { background: #292662; color: #fff; border-color: #292662; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .table-wrap { overflow-x: auto; border: 1px solid #e6e8f5; border-radius: 10px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table thead tr { background: #f5f6fb; }
+        .data-table th, .data-table td { text-align: left; padding: 8px; border-bottom: 1px solid #eef0fa; white-space: nowrap; }
+        .pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; }
+        .pager button { padding: 6px 10px; border-radius: 8px; }
+        .pager-info { color: #5d647f; font-size: 12px; }
+        .log-view-btn { padding: 5px 9px; border-radius: 8px; font-size: 11px; }
+        .log-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 18, 40, 0.68);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 18px;
+        }
+        .log-modal.open { display: flex; }
+        .log-modal-card {
+            width: min(95vw, 1100px);
+            height: min(88vh, 780px);
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e6e8f5;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
+        }
+        .log-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e6e8f5;
+            background: #f8f9ff;
+        }
+        .log-modal-title { color: #292662; font-weight: 700; font-size: 14px; }
+        .log-modal-close {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid #d8dcf0;
+            background: #fff;
+            color: #292662;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .log-modal-body { padding: 10px; overflow: auto; background: #fbfcff; }
+        .log-modal-body pre { height: 100%; margin: 0; font-size: 12px; }
         @media (max-width: 960px) {
             .panel-grid { grid-template-columns: 1fr; }
             .viewer-wrap { grid-template-columns: 1fr; }
@@ -136,8 +336,10 @@
     </div>
 
     <div class="card">
-        <h2>Uploaded File Viewer</h2>
-        <div class="viewer-wrap">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
+            <h2 style="margin:0;">Uploaded File Viewer</h2>
+        </div>
+        <div id="viewerWrap" class="viewer-wrap">
             <div id="uploadedList" class="file-list"></div>
             <div class="preview" id="previewPane">
                 <div class="preview-empty">Select an uploaded file to preview here.</div>
@@ -145,6 +347,92 @@
         </div>
     </div>
 </div>
+
+<div class="card tab-wrap">
+    <div class="tab-head">
+        <button id="historyTabBtn" class="tab-btn active" type="button">History</button>
+        <button id="logsTabBtn" class="tab-btn" type="button">Log</button>
+    </div>
+
+    <div id="historyTabPanel" class="tab-panel active">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Date Time</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody id="historyRows">
+                <tr><td colspan="4" class="muted">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <button id="historyPrevBtn" type="button">Prev</button>
+            <span id="historyPagerInfo" class="pager-info">Page 1</span>
+            <button id="historyNextBtn" type="button">Next</button>
+        </div>
+    </div>
+
+    <div id="logsTabPanel" class="tab-panel">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Date Time</th>
+                    <th>File Id</th>
+                    <th>Event</th>
+                    <th>Level</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="logRows">
+                <tr><td colspan="5" class="muted">Loading logs...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <button id="logsPrevBtn" type="button">Prev</button>
+            <span id="logsPagerInfo" class="pager-info">Page 1</span>
+            <button id="logsNextBtn" type="button">Next</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="docModal" class="doc-modal" aria-hidden="true">
+    <div class="doc-modal-card">
+        <div class="doc-modal-head">
+            <div class="doc-head-left">
+                <div id="docModalTitle" class="doc-modal-title">Document Viewer</div>
+                <div id="imgZoomControls" class="img-zoom-controls">
+                    <button id="imgZoomOutBtn" class="img-zoom-btn" type="button">−</button>
+                    <span id="imgZoomLabel" class="img-zoom-label">100%</span>
+                    <button id="imgZoomInBtn" class="img-zoom-btn" type="button">+</button>
+                    <button id="imgZoomResetBtn" class="img-zoom-reset" type="button">Reset</button>
+                </div>
+            </div>
+            <button id="docModalClose" class="doc-modal-close" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="doc-modal-body">
+            <div id="docModalContent" class="doc-modal-content"></div>
+        </div>
+    </div>
+</div>
+
+<div id="logModal" class="log-modal" aria-hidden="true">
+    <div class="log-modal-card">
+        <div class="log-modal-head">
+            <div class="log-modal-title">Log Details</div>
+            <button id="logModalClose" class="log-modal-close" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="log-modal-body">
+            <pre id="logModalPre"></pre>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -172,6 +460,31 @@
     const typeBars = document.getElementById('typeBars');
     const uploadedList = document.getElementById('uploadedList');
     const previewPane = document.getElementById('previewPane');
+    const viewerWrap = document.getElementById('viewerWrap');
+    const docModal = document.getElementById('docModal');
+    const docModalContent = document.getElementById('docModalContent');
+    const docModalTitle = document.getElementById('docModalTitle');
+    const docModalClose = document.getElementById('docModalClose');
+    const imgZoomControls = document.getElementById('imgZoomControls');
+    const imgZoomOutBtn = document.getElementById('imgZoomOutBtn');
+    const imgZoomInBtn = document.getElementById('imgZoomInBtn');
+    const imgZoomResetBtn = document.getElementById('imgZoomResetBtn');
+    const imgZoomLabel = document.getElementById('imgZoomLabel');
+    const logModal = document.getElementById('logModal');
+    const logModalClose = document.getElementById('logModalClose');
+    const logModalPre = document.getElementById('logModalPre');
+    const historyTabBtn = document.getElementById('historyTabBtn');
+    const logsTabBtn = document.getElementById('logsTabBtn');
+    const historyTabPanel = document.getElementById('historyTabPanel');
+    const logsTabPanel = document.getElementById('logsTabPanel');
+    const historyRows = document.getElementById('historyRows');
+    const logRows = document.getElementById('logRows');
+    const historyPrevBtn = document.getElementById('historyPrevBtn');
+    const historyNextBtn = document.getElementById('historyNextBtn');
+    const historyPagerInfo = document.getElementById('historyPagerInfo');
+    const logsPrevBtn = document.getElementById('logsPrevBtn');
+    const logsNextBtn = document.getElementById('logsNextBtn');
+    const logsPagerInfo = document.getElementById('logsPagerInfo');
     const chunkPieCanvas = document.getElementById('chunkPieChart');
     const providerBarCanvas = document.getElementById('providerBarChart');
     const fileTypeBarCanvas = document.getElementById('fileTypeBarChart');
@@ -186,9 +499,17 @@
     let dashboardRefreshTimer = null;
     let openedViewerFileName = null;
     let freezeRightViewerRefresh = false;
+    let currentPreviewFile = null;
     let chunkPieChart = null;
     let providerBarChart = null;
     let fileTypeBarChart = null;
+    let activeDataTab = 'history';
+    let historyPage = 1;
+    let historyLastPage = 1;
+    let logsPage = 1;
+    let logsLastPage = 1;
+    let currentLogItems = [];
+    let currentImageZoom = 1;
     const LAST_UPLOAD_KEY = 'upload_last_state';
     const AUTO_CONTINUE_KEY = 'upload_auto_continue';
     const HANDLE_DB_NAME = 'upload_file_handles';
@@ -390,6 +711,201 @@
         return 'other';
     }
 
+    function isDocumentType(extension) {
+        const ext = String(extension || '').toLowerCase();
+        return ['pdf', 'txt', 'html', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf'].includes(ext);
+    }
+
+    function getViewerBodyHtml(file, fullscreen = false) {
+        const ext = String(file.extension || '').toLowerCase();
+        const encoded = encodeURIComponent(file.name);
+        const viewUrl = `/upload/files/${encoded}/view`;
+        const downloadUrl = `/upload/files/${encoded}/download`;
+
+        if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'].includes(ext)) {
+            if (fullscreen) {
+                return `<div class="img-zoom-stage" data-modal-image-stage="1"><img class="zoomable" data-modal-image-preview="1" src="${viewUrl}" alt="${escapeHtml(file.name)}" /></div>`;
+            }
+            return `<img src="${viewUrl}" alt="${escapeHtml(file.name)}" />`;
+        }
+
+        if (['mp4', 'avi', 'mpeg', 'mov', 'mkv', 'webm'].includes(ext)) {
+            return `<video src="${viewUrl}" controls preload="metadata"></video>`;
+        }
+
+        if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'mpeg'].includes(ext)) {
+            return `<audio src="${viewUrl}" controls preload="metadata"></audio>`;
+        }
+
+        if (isDocumentType(ext)) {
+            return `<iframe src="${viewUrl}" title="${escapeHtml(file.name)}"></iframe>`;
+        }
+
+        if (fullscreen) {
+            return `
+                <div class="preview-empty">
+                    Preview is not available for this file type.<br/>
+                    <a href="${downloadUrl}" style="margin-top:10px;display:inline-block;background:#292662;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;">Download File</a>
+                </div>
+            `;
+        }
+
+        return `<div class="preview-empty">Preview not available for this file type.<br/>Use download to open locally.</div>`;
+    }
+
+    function openFileModal(file) {
+        if (!file) {
+            return;
+        }
+
+        const ext = String(file.extension || '').toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'].includes(ext);
+
+        docModalTitle.textContent = file.name;
+        docModalContent.innerHTML = getViewerBodyHtml(file, true);
+
+        if (isImage) {
+            currentImageZoom = 1;
+            imgZoomControls.classList.add('active');
+            imgZoomLabel.textContent = '100%';
+            applyModalImageZoom();
+        } else {
+            imgZoomControls.classList.remove('active');
+        }
+
+        docModal.classList.add('open');
+        docModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDocumentModal() {
+        docModal.classList.remove('open');
+        docModal.setAttribute('aria-hidden', 'true');
+        docModalContent.innerHTML = '';
+        imgZoomControls.classList.remove('active');
+        currentImageZoom = 1;
+    }
+
+    function applyModalImageZoom() {
+        const image = docModalContent.querySelector('[data-modal-image-preview="1"]');
+        const stage = docModalContent.querySelector('[data-modal-image-stage="1"]');
+        if (!image) {
+            return;
+        }
+        currentImageZoom = Math.max(0.2, Math.min(5, currentImageZoom));
+        image.style.transform = `scale(${currentImageZoom})`;
+
+        if (stage) {
+            requestAnimationFrame(() => {
+                stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+                stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+            });
+        }
+
+        imgZoomLabel.textContent = `${Math.round(currentImageZoom * 100)}%`;
+    }
+
+    function openLogDetailsModal(item) {
+        if (!item) return;
+        const payload = item.details || item;
+        logModalPre.textContent = JSON.stringify(payload, null, 2);
+        logModal.classList.add('open');
+        logModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeLogModal() {
+        logModal.classList.remove('open');
+        logModal.setAttribute('aria-hidden', 'true');
+        logModalPre.textContent = '';
+    }
+
+    function setActiveDataTab(tab) {
+        activeDataTab = tab;
+        historyTabBtn.classList.toggle('active', tab === 'history');
+        logsTabBtn.classList.toggle('active', tab === 'logs');
+        historyTabPanel.classList.toggle('active', tab === 'history');
+        logsTabPanel.classList.toggle('active', tab === 'logs');
+
+        if (tab === 'history') {
+            refreshHistoryTab(historyPage);
+        } else {
+            refreshLogsTab(logsPage);
+        }
+    }
+
+    async function refreshHistoryTab(page = 1) {
+        try {
+            const data = await request(`/upload/history?page=${page}&perPage=10`);
+            const payload = data.data || {};
+            const items = Array.isArray(payload.items) ? payload.items : [];
+            const pagination = payload.pagination || {};
+            currentLogItems = items;
+
+            historyPage = Number(pagination.page || page || 1);
+            historyLastPage = Number(pagination.lastPage || 1);
+
+            if (!items.length) {
+                historyRows.innerHTML = '<tr><td colspan="4" class="muted">No history found.</td></tr>';
+            } else {
+                historyRows.innerHTML = items.map((item) => `
+                    <tr>
+                        <td>${escapeHtml(item.dateTime || '-')}</td>
+                        <td>${escapeHtml(item.name || '-')}</td>
+                        <td>${escapeHtml(item.type || '-')}</td>
+                        <td>${escapeHtml(item.status || '-')}</td>
+                    </tr>
+                `).join('');
+            }
+
+            historyPagerInfo.textContent = `Page ${historyPage} of ${historyLastPage}`;
+            historyPrevBtn.disabled = historyPage <= 1;
+            historyNextBtn.disabled = historyPage >= historyLastPage;
+        } catch (error) {
+            historyRows.innerHTML = `<tr><td colspan="4" class="err">${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
+    async function refreshLogsTab(page = 1) {
+        try {
+            const data = await request(`/upload/logs?page=${page}&perPage=10`);
+            const payload = data.data || {};
+            const items = Array.isArray(payload.items) ? payload.items : [];
+            const pagination = payload.pagination || {};
+
+            logsPage = Number(pagination.page || page || 1);
+            logsLastPage = Number(pagination.lastPage || 1);
+
+            if (!items.length) {
+                logRows.innerHTML = '<tr><td colspan="5" class="muted">No logs found.</td></tr>';
+            } else {
+                logRows.innerHTML = items.map((item, idx) => `
+                    <tr>
+                        <td>${escapeHtml(item.dateTime || '-')}</td>
+                        <td>${escapeHtml(item.fileId || '-')}</td>
+                        <td>${escapeHtml(item.event || '-')}</td>
+                        <td>${escapeHtml(item.level || '-')}</td>
+                        <td><button type="button" class="log-view-btn" data-log-view="${idx}">View</button></td>
+                    </tr>
+                `).join('');
+
+                logRows.querySelectorAll('[data-log-view]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const idx = Number(btn.getAttribute('data-log-view'));
+                        const selected = currentLogItems[idx] || null;
+                        if (selected) {
+                            openLogDetailsModal(selected);
+                        }
+                    });
+                });
+            }
+
+            logsPagerInfo.textContent = `Page ${logsPage} of ${logsLastPage}`;
+            logsPrevBtn.disabled = logsPage <= 1;
+            logsNextBtn.disabled = logsPage >= logsLastPage;
+        } catch (error) {
+            logRows.innerHTML = `<tr><td colspan="5" class="err">${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
     function renderTypeBars(files) {
         const groups = { image: 0, audio: 0, video: 0, document: 0, other: 0 };
         for (const file of files) {
@@ -412,6 +928,8 @@
     }
 
     function renderPreview(file) {
+        currentPreviewFile = file || null;
+
         if (!file) {
             previewPane.innerHTML = '<div class="preview-empty">Select an uploaded file to preview here.</div>';
             return;
@@ -422,18 +940,7 @@
         const viewUrl = `/upload/files/${encoded}/view`;
         const downloadUrl = `/upload/files/${encoded}/download`;
 
-        let body = '';
-        if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'].includes(ext)) {
-            body = `<img src="${viewUrl}" alt="${escapeHtml(file.name)}" />`;
-        } else if (['mp4', 'avi', 'mpeg', 'mov', 'mkv', 'webm'].includes(ext)) {
-            body = `<video src="${viewUrl}" controls preload="metadata"></video>`;
-        } else if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'mpeg'].includes(ext)) {
-            body = `<audio src="${viewUrl}" controls preload="metadata"></audio>`;
-        } else if (['pdf', 'txt', 'html', 'csv'].includes(ext)) {
-            body = `<iframe src="${viewUrl}"></iframe>`;
-        } else {
-            body = `<div class="preview-empty">Preview not available for this file type.<br/>Use download to open locally.</div>`;
-        }
+        const body = getViewerBodyHtml(file, false);
 
         previewPane.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
@@ -466,12 +973,19 @@
             ? map.get(openedViewerFileName)
             : files[0];
 
-        uploadedList.innerHTML = files.map((file) => `
-            <button type="button" class="file-item ${activeFile?.name === file.name ? 'active' : ''}" data-name="${escapeHtml(file.name)}">
-                <span class="file-name">${escapeHtml(file.name)}</span>
-                <span class="file-meta">${(file.extension || 'unknown').toUpperCase()} • ${formatBytes(file.sizeBytes)}</span>
-            </button>
-        `).join('');
+        uploadedList.innerHTML = files.map((file) => {
+            const rowAction = `<button type="button" class="file-view-action" data-view-file="${escapeHtml(file.name)}"><span>👁</span><span>View</span></button>`;
+
+            return `
+                <div class="file-item-row">
+                    <button type="button" class="file-item ${activeFile?.name === file.name ? 'active' : ''}" data-name="${escapeHtml(file.name)}">
+                        <span class="file-name">${escapeHtml(file.name)}</span>
+                        <span class="file-meta">${(file.extension || 'unknown').toUpperCase()} • ${formatBytes(file.sizeBytes)}</span>
+                    </button>
+                    ${rowAction}
+                </div>
+            `;
+        }).join('');
 
         uploadedList.querySelectorAll('.file-item').forEach((button) => {
             button.addEventListener('click', () => {
@@ -481,6 +995,17 @@
                 openedViewerFileName = selected?.name || null;
                 freezeRightViewerRefresh = true;
                 renderPreview(selected || null);
+            });
+        });
+
+        uploadedList.querySelectorAll('[data-view-file]').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const selected = map.get(button.getAttribute('data-view-file'));
+                if (selected) {
+                    openFileModal(selected);
+                }
             });
         });
 
@@ -520,6 +1045,12 @@
             });
 
             updateCharts(analytics);
+
+            if (activeDataTab === 'history') {
+                refreshHistoryTab(historyPage);
+            } else {
+                refreshLogsTab(logsPage);
+            }
         } catch (error) {
             metricFiles.textContent = '0';
             metricSize.textContent = '0 B';
@@ -1450,6 +1981,65 @@
         }
         refreshUploadPanels();
         startDashboardAutoRefresh();
+    });
+
+    docModalClose.addEventListener('click', () => {
+        closeDocumentModal();
+    });
+
+    logModalClose.addEventListener('click', () => {
+        closeLogModal();
+    });
+
+    imgZoomInBtn.addEventListener('click', () => {
+        currentImageZoom += 0.2;
+        applyModalImageZoom();
+    });
+
+    imgZoomOutBtn.addEventListener('click', () => {
+        currentImageZoom -= 0.2;
+        applyModalImageZoom();
+    });
+
+    imgZoomResetBtn.addEventListener('click', () => {
+        currentImageZoom = 1;
+        applyModalImageZoom();
+    });
+
+    logModal.addEventListener('click', (event) => {
+        if (event.target === logModal) {
+            closeLogModal();
+        }
+    });
+
+    historyTabBtn.addEventListener('click', () => setActiveDataTab('history'));
+    logsTabBtn.addEventListener('click', () => setActiveDataTab('logs'));
+    historyPrevBtn.addEventListener('click', () => {
+        if (historyPage > 1) refreshHistoryTab(historyPage - 1);
+    });
+    historyNextBtn.addEventListener('click', () => {
+        if (historyPage < historyLastPage) refreshHistoryTab(historyPage + 1);
+    });
+    logsPrevBtn.addEventListener('click', () => {
+        if (logsPage > 1) refreshLogsTab(logsPage - 1);
+    });
+    logsNextBtn.addEventListener('click', () => {
+        if (logsPage < logsLastPage) refreshLogsTab(logsPage + 1);
+    });
+
+    docModal.addEventListener('click', (event) => {
+        if (event.target === docModal) {
+            closeDocumentModal();
+        }
+    });
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && docModal.classList.contains('open')) {
+            closeDocumentModal();
+        }
+        if (event.key === 'Escape' && logModal.classList.contains('open')) {
+            closeLogModal();
+        }
     });
 
     window.addEventListener('beforeunload', () => {

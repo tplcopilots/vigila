@@ -42,6 +42,28 @@ class ChunkUploadPageController extends Controller
         ]);
     }
 
+    public function history(Request $request): JsonResponse
+    {
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = max(1, min(100, (int) $request->query('perPage', 10)));
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->chunkUploadService->getUploadHistoryPaginated($page, $perPage),
+        ]);
+    }
+
+    public function logs(Request $request): JsonResponse
+    {
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = max(1, min(100, (int) $request->query('perPage', 10)));
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->chunkUploadService->getUploadLogsPaginated($page, $perPage),
+        ]);
+    }
+
     public function viewFile(string $name)
     {
         $safeName = basename($name);

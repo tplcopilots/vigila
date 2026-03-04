@@ -17,6 +17,8 @@ Route::get('/health', function () {
 Route::get('/upload', [ChunkUploadPageController::class, 'index'])->name('upload.page');
 Route::get('/upload/files', [ChunkUploadPageController::class, 'uploads'])->name('upload.files');
 Route::get('/upload/analytics', [ChunkUploadPageController::class, 'analytics'])->name('upload.analytics');
+Route::get('/upload/history', [ChunkUploadPageController::class, 'history'])->name('upload.history');
+Route::get('/upload/logs', [ChunkUploadPageController::class, 'logs'])->name('upload.logs');
 Route::get('/upload/files/{name}/view', [ChunkUploadPageController::class, 'viewFile'])->where('name', '.*')->name('upload.files.view');
 Route::get('/upload/files/{name}/download', [ChunkUploadPageController::class, 'downloadFile'])->where('name', '.*')->name('upload.files.download');
 Route::post('/upload/init', [ChunkUploadPageController::class, 'init'])->name('upload.init');

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vigi/core/app_config.dart';
 import 'package:flutter_vigi/features/report/data/upload_service.dart';
@@ -38,6 +39,7 @@ class _TheftReportPageState extends State<TheftReportPage> {
   bool _isUploading = false;
   double _uploadProgress = 0;
   File? _recordedVideo;
+  File? _selectedEvidenceFile;
   String? _pendingFileId;
   String? _pendingReportId;
   bool _isReportUploaded = false;
@@ -105,6 +107,7 @@ class _TheftReportPageState extends State<TheftReportPage> {
         setState(() {
           _isRecording = false;
           _recordedVideo = file;
+          _selectedEvidenceFile = file;
           _pendingFileId = null;
           _pendingReportId = null;
           _isReportUploaded = false;
@@ -122,15 +125,51 @@ class _TheftReportPageState extends State<TheftReportPage> {
     }
   }
 
+  Future<void> _pickEvidenceFile() async {
+    if (_isUploading || _isRecording) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.any,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final picked = result.files.first;
+      if (picked.path == null || picked.path!.trim().isEmpty) {
+        _showSnack('Unable to access selected file path.');
+        return;
+      }
+
+      setState(() {
+        _selectedEvidenceFile = File(picked.path!);
+        _recordedVideo = null;
+        _pendingFileId = null;
+        _pendingReportId = null;
+        _isReportUploaded = false;
+        _pendingChunks = null;
+      });
+
+      _showSnack('Evidence file selected successfully.');
+    } catch (error) {
+      _showSnack('File selection failed: $error');
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_recordedVideo == null) {
-      _showSnack('Please record evidence video before submit.');
+    final evidenceFile = _selectedEvidenceFile ?? _recordedVideo;
+
+    if (evidenceFile == null) {
+      _showSnack('Please record or select evidence file before submit.');
       return;
     }
 
     final reportId = _pendingReportId ?? _uuid.v4();
-    final fileId = _pendingFileId ?? _uuid.v4();
+    var fileId = _pendingFileId ?? _uuid.v4();
 
     _pendingReportId = reportId;
     _pendingFileId = fileId;
@@ -161,45 +200,73 @@ class _TheftReportPageState extends State<TheftReportPage> {
         _isReportUploaded = true;
       }
 
-      final chunks = _pendingChunks ??
+      final chunks =
+          _pendingChunks ??
           await _chunker.splitFile(
-            file: _recordedVideo!,
+            file: evidenceFile,
             chunkSizeInBytes: 1024 * 1024,
             fileId: fileId,
           );
-      _pendingChunks = chunks;
+
+      final init = await _uploadService.initUpload(
+        totalChunks: chunks.length,
+        fileId: fileId,
+      );
+      fileId = init.fileId;
+      _pendingFileId = fileId;
+
+      if (fileId != chunks.first.fileId) {
+        _pendingChunks = await _chunker.splitFile(
+          file: evidenceFile,
+          chunkSizeInBytes: 1024 * 1024,
+          fileId: fileId,
+        );
+      }
+
+      final activeChunks = _pendingChunks ?? chunks;
+      _pendingChunks = activeChunks;
 
       final status = await _uploadService.getUploadStatus(
         fileId: fileId,
-        totalChunks: chunks.length,
+        totalChunks: activeChunks.length,
       );
-      final alreadyUploaded = status.uploadedIndexes.toSet();
+      final alreadyUploaded = {
+        ...init.uploadedIndexes,
+        ...status.uploadedIndexes,
+      };
 
       if (mounted) {
         setState(() {
-          _uploadProgress = alreadyUploaded.length / chunks.length;
+          _uploadProgress = alreadyUploaded.length / activeChunks.length;
         });
       }
 
-      for (var index = 0; index < chunks.length; index++) {
+      var uploadedCount = alreadyUploaded.length;
+
+      for (var index = 0; index < activeChunks.length; index++) {
         if (alreadyUploaded.contains(index)) {
           continue;
         }
 
-        await _uploadService.uploadChunk(chunks[index]);
+        await _uploadService.uploadChunk(activeChunks[index]);
+        uploadedCount += 1;
         if (!mounted) return;
         setState(() {
-          _uploadProgress = (index + 1) / chunks.length;
+          _uploadProgress = uploadedCount / activeChunks.length;
         });
       }
 
       await _uploadService.finalizeUpload(
         fileId: fileId,
-        totalChunks: chunks.length,
+        totalChunks: activeChunks.length,
+        fileName: evidenceFile.uri.pathSegments.isNotEmpty
+            ? evidenceFile.uri.pathSegments.last
+            : null,
+        mimeType: _detectMimeType(evidenceFile.path),
       );
 
       if (!mounted) return;
-      _showSnack('Report submitted and video uploaded successfully.');
+      _showSnack('Report submitted and evidence uploaded successfully.');
       _resetForm();
     } catch (e) {
       _showSnack('Submit failed: $e. Retry submit to resume from last chunk.');
@@ -225,6 +292,7 @@ class _TheftReportPageState extends State<TheftReportPage> {
       _incidentDate = DateTime.now();
       _theftType = _theftTypes.first;
       _recordedVideo = null;
+      _selectedEvidenceFile = null;
       _uploadProgress = 0;
       _pendingFileId = null;
       _pendingReportId = null;
@@ -234,9 +302,34 @@ class _TheftReportPageState extends State<TheftReportPage> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _detectMimeType(String filePath) {
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'mp4':
+        return 'video/mp4';
+      case 'mov':
+        return 'video/quicktime';
+      case 'mkv':
+        return 'video/x-matroska';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'webm':
+        return 'video/webm';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'pdf':
+        return 'application/pdf';
+      default:
+        return 'application/octet-stream';
+    }
   }
 
   @override
@@ -244,9 +337,7 @@ class _TheftReportPageState extends State<TheftReportPage> {
     final dateLabel = DateFormat('dd MMM yyyy').format(_incidentDate);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vigilance Theft Reporting'),
-      ),
+      appBar: AppBar(title: const Text('Vigilance Theft Reporting')),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -287,12 +378,16 @@ class _TheftReportPageState extends State<TheftReportPage> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _theftType,
-                      decoration: const InputDecoration(labelText: 'Theft Type'),
+                      decoration: const InputDecoration(
+                        labelText: 'Theft Type',
+                      ),
                       items: _theftTypes
-                          .map((type) => DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(type),
-                              ))
+                          .map(
+                            (type) => DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value != null) {
@@ -307,8 +402,9 @@ class _TheftReportPageState extends State<TheftReportPage> {
                       onTap: _pickDate,
                       borderRadius: BorderRadius.circular(12),
                       child: InputDecorator(
-                        decoration:
-                            const InputDecoration(labelText: 'Incident Date'),
+                        decoration: const InputDecoration(
+                          labelText: 'Incident Date',
+                        ),
                         child: Text(dateLabel),
                       ),
                     ),
@@ -323,7 +419,7 @@ class _TheftReportPageState extends State<TheftReportPage> {
               ),
               const SizedBox(height: 16),
               _sectionCard(
-                title: 'Video Evidence',
+                title: 'Evidence (Video or Document)',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -338,14 +434,33 @@ class _TheftReportPageState extends State<TheftReportPage> {
                     ElevatedButton.icon(
                       onPressed: _isUploading ? null : _toggleRecording,
                       icon: Icon(
-                        _isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
+                        _isRecording
+                            ? Icons.stop_circle
+                            : Icons.fiber_manual_record,
                       ),
-                      label: Text(_isRecording ? 'Stop Recording' : 'Start Recording'),
+                      label: Text(
+                        _isRecording ? 'Stop Recording' : 'Start Recording',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _isUploading || _isRecording
+                          ? null
+                          : _pickEvidenceFile,
+                      icon: const Icon(Icons.attach_file),
+                      label: const Text('Select Evidence File'),
                     ),
                     if (_recordedVideo != null) ...[
                       const SizedBox(height: 8),
                       Text(
                         'Captured: ${_recordedVideo!.path.split('/').last}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                    if (_selectedEvidenceFile != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Selected: ${_selectedEvidenceFile!.path.split('/').last}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -392,7 +507,9 @@ class _TheftReportPageState extends State<TheftReportPage> {
 
   Widget _cameraPreview() {
     final controller = _recordingService.controller;
-    if (!_isCameraReady || controller == null || !controller.value.isInitialized) {
+    if (!_isCameraReady ||
+        controller == null ||
+        !controller.value.isInitialized) {
       return Container(
         color: const Color(0xFFE8EAF6),
         alignment: Alignment.center,
@@ -424,9 +541,9 @@ class _TheftReportPageState extends State<TheftReportPage> {
           Text(
             'Environment: $flavor',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onPrimaryContainer,
-                ),
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onPrimaryContainer,
+            ),
           ),
         ],
       ),
@@ -446,9 +563,9 @@ class _TheftReportPageState extends State<TheftReportPage> {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           child,

@@ -7,6 +7,7 @@ use App\Services\ChunkUploadService;
 use App\Services\Security\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class UploadController extends Controller
@@ -46,6 +47,63 @@ class UploadController extends Controller
             ], 422);
         } catch (\Throwable $exception) {
             $this->auditLogger->error('api.report.error', [
+                'message' => $exception->getMessage(),
+            ], $request);
+            return response()->json([
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function init(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'totalChunks' => ['required', 'integer', 'min:1'],
+                'provider' => ['nullable', 'string', 'max:32'],
+                'fileId' => ['nullable', 'string', 'max:128'],
+            ]);
+
+            $fileId = $validated['fileId'] ?? (string) Str::uuid();
+            $provider = $validated['provider'] ?? env('ACTIVE_STORAGE_PROVIDER', 'firebase');
+
+            $this->chunkUploadService->registerUploadSession(
+                fileId: $fileId,
+                totalChunks: $validated['totalChunks'],
+                provider: $provider,
+            );
+
+            $status = $this->chunkUploadService->getChunkStatus(
+                fileId: $fileId,
+                totalChunks: $validated['totalChunks'],
+            );
+
+            $this->auditLogger->info('api.init.success', [
+                'file_id' => $fileId,
+                'total_chunks' => $validated['totalChunks'],
+                'provider' => $provider,
+                'uploaded_count' => count($status['uploadedIndexes']),
+                'missing_count' => count($status['missingIndexes']),
+            ], $request);
+
+            return response()->json([
+                'success' => true,
+                'fileId' => $fileId,
+                'totalChunks' => $validated['totalChunks'],
+                'uploadedIndexes' => $status['uploadedIndexes'],
+                'missingIndexes' => $status['missingIndexes'],
+                'provider' => $provider,
+            ]);
+        } catch (ValidationException $exception) {
+            $this->auditLogger->warning('api.init.validation_failed', [
+                'errors' => $exception->errors(),
+            ], $request);
+            return response()->json([
+                'error' => 'Validation failed',
+                'details' => $exception->errors(),
+            ], 422);
+        } catch (\Throwable $exception) {
+            $this->auditLogger->error('api.init.error', [
                 'message' => $exception->getMessage(),
             ], $request);
             return response()->json([

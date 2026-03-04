@@ -222,6 +222,126 @@ class ChunkUploadService
         ];
     }
 
+    public function getUploadHistoryPaginated(int $page = 1, int $perPage = 10): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+
+        $files = $this->listFinalUploads();
+        $items = array_map(static function (array $file): array {
+            return [
+                'dateTime' => $file['updatedAt'] ?? null,
+                'name' => $file['name'] ?? null,
+                'type' => strtoupper((string) ($file['extension'] ?? 'UNKNOWN')),
+                'status' => 'COMPLETED',
+            ];
+        }, $files);
+
+        return $this->paginateItems($items, $page, $perPage);
+    }
+
+    public function getUploadLogsPaginated(int $page = 1, int $perPage = 10): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+
+        $logFiles = glob(storage_path('logs/upload_audit*.log')) ?: [];
+        usort($logFiles, static fn (string $a, string $b): int => filemtime($b) <=> filemtime($a));
+
+        $entries = [];
+
+        foreach ($logFiles as $logFile) {
+            $lines = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (!is_array($lines) || count($lines) === 0) {
+                continue;
+            }
+
+            for ($index = count($lines) - 1; $index >= 0; $index--) {
+                $line = (string) $lines[$index];
+                if (!str_contains($line, 'file_id') && !str_contains($line, 'report_id')) {
+                    continue;
+                }
+
+                $time = null;
+                $level = 'INFO';
+                $event = '';
+                $context = [];
+                $extra = [];
+
+                if (preg_match('/^\[([^\]]+)\]\s+[^.]+\.([A-Z]+):\s+([^\{\[]*?)(?:\s+(\{.*?\}))?(?:\s+(\[.*\]))?$/i', $line, $matches) === 1) {
+                    $time = $matches[1] ?? null;
+                    $level = strtoupper($matches[2] ?? 'INFO');
+                    $event = trim($matches[3] ?? '');
+                    $contextRaw = trim((string) ($matches[4] ?? ''));
+                    if ($contextRaw !== '') {
+                        $decoded = json_decode($contextRaw, true);
+                        if (is_array($decoded)) {
+                            $context = $decoded;
+                        }
+                    }
+
+                    $extraRaw = trim((string) ($matches[5] ?? ''));
+                    if ($extraRaw !== '') {
+                        $decodedExtra = json_decode($extraRaw, true);
+                        if (is_array($decodedExtra)) {
+                            $extra = $decodedExtra;
+                        }
+                    }
+                }
+
+                $fileId = $context['file_id'] ?? $context['report_id'] ?? null;
+                if (!is_string($fileId) || trim($fileId) === '') {
+                    if (preg_match('/"file_id"\s*:\s*"([^"]+)"/i', $line, $idMatch) === 1) {
+                        $fileId = $idMatch[1];
+                    } elseif (preg_match('/"report_id"\s*:\s*"([^"]+)"/i', $line, $idMatch) === 1) {
+                        $fileId = $idMatch[1];
+                    }
+                }
+
+                if (!is_string($fileId) || trim($fileId) === '') {
+                    continue;
+                }
+
+                $entries[] = [
+                    'dateTime' => $time,
+                    'fileId' => $fileId,
+                    'level' => $level,
+                    'event' => $event,
+                    'message' => $line,
+                    'details' => [
+                        'dateTime' => $time,
+                        'level' => $level,
+                        'event' => $event,
+                        'fileId' => $fileId,
+                        'context' => $context,
+                        'extra' => $extra,
+                        'raw' => $line,
+                    ],
+                ];
+            }
+        }
+
+        return $this->paginateItems($entries, $page, $perPage);
+    }
+
+    private function paginateItems(array $items, int $page, int $perPage): array
+    {
+        $total = count($items);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $currentPage = min(max(1, $page), $lastPage);
+        $offset = ($currentPage - 1) * $perPage;
+
+        return [
+            'items' => array_values(array_slice($items, $offset, $perPage)),
+            'pagination' => [
+                'page' => $currentPage,
+                'perPage' => $perPage,
+                'total' => $total,
+                'lastPage' => $lastPage,
+            ],
+        ];
+    }
+
     private function resolveFinalExtension(?string $originalFileName, ?string $mimeType): string
     {
         $ext = strtolower((string) pathinfo((string) $originalFileName, PATHINFO_EXTENSION));

@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "Flutter Vigi Upload API",
+    "description": "Signed API collection for report + resumable chunk upload flow.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "apiKey", "value": "change-me-api-key" },
+    { "key": "signingSecret", "value": "change-me-signing-secret" },
+    { "key": "fileId", "value": "demo-file-001" },
+    { "key": "reportId", "value": "demo-report-001" },
+    { "key": "totalChunks", "value": "3" },
+    { "key": "provider", "value": "firebase" },
+    { "key": "chunkIndex", "value": "0" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const apiKey = pm.collectionVariables.get('apiKey');",
+          "const secret = pm.collectionVariables.get('signingSecret');",
+          "const timestamp = Date.now().toString();",
+          "const nonce = CryptoJS.lib.WordArray.random(16).toString();",
+          "",
+          "let bodyText = '';",
+          "if (pm.request.body && pm.request.body.mode === 'raw' && pm.request.body.raw) {",
+          "  bodyText = pm.request.body.raw;",
+          "}",
+          "",
+          "const bodyHash = CryptoJS.SHA256(bodyText).toString(CryptoJS.enc.Hex);",
+          "const path = '/' + pm.request.url.path.join('/');",
+          "const canonical = [pm.request.method.toUpperCase(), path, timestamp, nonce, bodyHash].join('\\n');",
+          "const signature = CryptoJS.HmacSHA256(canonical, secret).toString(CryptoJS.enc.Hex);",
+          "",
+          "pm.request.headers.upsert({ key: 'content-type', value: 'application/json' });",
+          "pm.request.headers.upsert({ key: 'x-api-key', value: apiKey });",
+          "pm.request.headers.upsert({ key: 'x-timestamp', value: timestamp });",
+          "pm.request.headers.upsert({ key: 'x-nonce', value: nonce });",
+          "pm.request.headers.upsert({ key: 'x-signature', value: signature });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "API - Report + Upload",
+      "item": [
+        {
+          "name": "Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"{{reportId}}\",\n  \"provider\": \"{{provider}}\",\n  \"report\": {\n    \"reporterName\": \"Inspector 1\",\n    \"meterNumber\": \"MTR-1001\",\n    \"location\": \"Sector 10\",\n    \"details\": \"Suspicious bypass found\"\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/report", "host": ["{{baseUrl}}"], "path": ["api", "report"] }
+          }
+        },
+        {
+          "name": "Upload Init",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"totalChunks\": {{totalChunks}},\n  \"provider\": \"{{provider}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/upload/init", "host": ["{{baseUrl}}"], "path": ["api", "upload", "init"] }
+          }
+        },
+        {
+          "name": "Upload Chunk",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"chunkIndex\": {{chunkIndex}},\n  \"totalChunks\": {{totalChunks}},\n  \"provider\": \"{{provider}}\",\n  \"payload\": \"SGVsbG8gQ2h1bms=\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/upload/chunk", "host": ["{{baseUrl}}"], "path": ["api", "upload", "chunk"] }
+          }
+        },
+        {
+          "name": "Upload Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/status?fileId={{fileId}}&totalChunks={{totalChunks}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "status"],
+              "query": [
+                { "key": "fileId", "value": "{{fileId}}" },
+                { "key": "totalChunks", "value": "{{totalChunks}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Finalize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"totalChunks\": {{totalChunks}},\n  \"provider\": \"{{provider}}\",\n  \"fileName\": \"evidence.mp4\",\n  \"mimeType\": \"video/mp4\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/upload/finalize", "host": ["{{baseUrl}}"], "path": ["api", "upload", "finalize"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Web Dashboard APIs",
+      "item": [
+        {
+          "name": "Upload Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/upload/files", "host": ["{{baseUrl}}"], "path": ["upload", "files"] }
+          }
+        },
+        {
+          "name": "Upload Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/upload/analytics", "host": ["{{baseUrl}}"], "path": ["upload", "analytics"] }
+          }
+        },
+        {
+          "name": "Upload History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/history?page=1&perPage=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "perPage", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/logs?page=1&perPage=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "perPage", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

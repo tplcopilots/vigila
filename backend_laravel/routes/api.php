@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['verify.upload.signature'])->group(function () {
     Route::post('/report', [UploadController::class, 'report']);
+    Route::post('/upload/init', [UploadController::class, 'init']);
     Route::post('/upload/chunk', [UploadController::class, 'uploadChunk']);
     Route::get('/upload/status', [UploadController::class, 'status']);
     Route::post('/upload/finalize', [UploadController::class, 'finalizeUpload']);

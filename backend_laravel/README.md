@@ -23,6 +23,14 @@ Health endpoint for Flutter preflight:
 
 - `GET /health`
 
+## API Documentation
+
+- Complete API docs index: `docs/README.md`
+- Requests: `docs/upload_api_requests.md`
+- Responses: `docs/upload_api_responses.md`
+- Signed curl examples: `docs/upload_api_curl_examples.md`
+- Postman collection: `docs/upload_api.postman_collection.json`
+
 ## Flutter Compatibility
 
 Use same payload contract already used in Flutter app:

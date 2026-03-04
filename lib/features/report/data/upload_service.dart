@@ -46,7 +46,7 @@ class UploadService {
   }) async {
     final body = jsonEncode({
       'totalChunks': totalChunks,
-      if (fileId != null) 'fileId': fileId,
+      ...?fileId == null ? null : {'fileId': fileId},
       'provider': AppConfig.activeStorageProvider.name,
     });
 
@@ -106,8 +106,8 @@ class UploadService {
       'totalChunks': totalChunks,
       'provider': AppConfig.activeStorageProvider.name,
       'action': 'join_chunks',
-      if (fileName != null) 'fileName': fileName,
-      if (mimeType != null) 'mimeType': mimeType,
+      ...?fileName == null ? null : {'fileName': fileName},
+      ...?mimeType == null ? null : {'mimeType': mimeType},
     });
 
     await _post(endpoint: AppConfig.finalizeJoinEndpoint, body: body);
